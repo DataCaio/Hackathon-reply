@@ -1,21 +1,23 @@
-# 📋 Checklist de Interface - Hackathon Reply 2026
+# 📋 Checklist de Interface e Entregas - Hackathon Reply 2026
 
-## 🗂️ Trilha A: IA para Análise de Causa Raiz
-- [ ] **Zona de Upload Robusta:** Área de *drag and drop* para arquivos `.txt`, `.log` e `.csv`, incluindo barra de progresso para logs grandes.
-- [ ] **Dashboard de Relatório Técnico:** Cards visuais separados para Resumo Executivo, Causa Raiz, Evidências Encontradas e Serviços Impactados.
-- [ ] **Medidor de Nível de Confiança:** Indicador visual (gráfico de rosca ou barra) mostrando a porcentagem de certeza da IA.
-- [ ] **Timeline Interativa:** Componente cronológico para visualização temporal das falhas e anomalias.
-- [ ] **Grafo de Dependências (Diferencial):** Visualização em "nós" (network graph) mapeando a relação e o fluxo entre os microsserviços.
-- [ ] **Chat de Investigação (Diferencial):** Interface estilo chatbot para o engenheiro interrogar a IA com contexto e memória.
+## 🔋 Trilha C: Visão Computacional para Reciclagem (Detecção de Baterias)
 
----
+### 🟢 Requisitos Obrigatórios da Interface (MVP)
+- [ ] **Monitoramento de Vídeo:** Espaço na interface para rodar o feed sobre os clipes de CFTV fornecidos (sem usar dados externos).
+- [ ] **Saída Legível de Contagem:** Indicadores numéricos claros mostrando a quantidade de peças identificadas por lote (separando Baterias de Lítio e Chumbo-Ácido).
+- [ ] **Cálculo de Volume:** Indicador mostrando o volume acumulado a cada tombamento da bandeja.
+- [ ] **Estabilidade:** A interface consegue rodar a demonstração funcional de ponta a ponta sem quebrar.
 
-## 🏭 Squad Autônomo de Agentes (Caso Rivexx)
-- [ ] **UX/UI para Chão de Fábrica:** Design responsivo (mobile-first), botões grandes, alto contraste e usabilidade sem necessidade de treinamento.
-- [ ] **Formulário de Registro Ágil:** Interface de input rápido para o operador reportar o problema inicial (ex: "Defeito dimensional na linha 4").
-- [ ] **Console de Comunicação Auditável (CRÍTICO):** Feed visual e transparente mostrando toda a troca de dados e validações entre as IAs (PO, DEV e QA).
-- [ ] **Painel de Rastreabilidade de Lote:** Visualização (tabela ou fluxograma) que conecte insumos, fornecedores, equipamentos, turnos e operadores.
-- [ ] **Abas de Entregáveis do Squad:**
-  - [ ] Visualização das *Stories* priorizadas e critérios de aceite (Output do PO).
-  - [ ] Log estruturado de arquitetura e decisões técnicas (Output do DEV).
-  - [ ] Relatório de validação de testes e evidências (Output do QA).
+### 🌟 Diferenciais da Interface (Pontuação de "Aplicação Real")
+- [ ] **Painel do Operador de Planta:** Layout industrial (Dark Mode, alertas em vermelho para risco de incêndio, botões de Pausar/Continuar).
+- [ ] **Métrica de Qualidade (Evidência):** Exibição na tela de uma métrica própria (ex: MOTA - Multiple Object Tracking Accuracy) para provar para a banca que o sistema rastreia os objetos entre quadros sem contar duas vezes.
+- [ ] **Botão de "Live Demo":** Gatilho rápido na interface para iniciar o vídeo perfeitamente sincronizado com os 5 minutos do Pitch.
+
+### 📦 Entregáveis da Equipe (Para o Repositório)
+- [ ] **Código-Fonte Organizado:** Front-end (React) e Backend (Python) separados e com instruções claras de como rodar (25% da nota é Qualidade da Entrega).
+- [ ] **Arquitetura da Solução:** Diagrama (como aquele que você enviou) documentando a divisão do sistema e o fluxo do JSON.
+- [ ] **Demonstração Funcional:** Setup pronto para não dar dor de cabeça na hora H.
+- [ ] **Pitch de 5 Minutos:** Roteiro que aborde o problema, a solução, faça a demo rodar e explique o que ficou de fora (ex: integração com hardware).
+
+### 🚫 Fora de Escopo (Não percam tempo com isso)
+- [ ] Integração com PLC, atuadores mecânicos ou hardware físico da planta.
