@@ -3,7 +3,7 @@
 ## 🔋 Trilha C: Visão Computacional para Reciclagem (Detecção de Baterias)
 
 ### 🟢 Requisitos Obrigatórios da Interface (MVP)
-- [ ] **Monitoramento de Vídeo:** Espaço na interface para rodar o feed sobre os clipes de CFTV fornecidos (sem usar dados externos).
+- [x] **Monitoramento de Vídeo:** Espaço na interface para rodar o feed sobre os clipes de CFTV fornecidos (sem usar dados externos).
 - [ ] **Saída Legível de Contagem:** Indicadores numéricos claros mostrando a quantidade de peças identificadas por lote (separando Baterias de Lítio e Chumbo-Ácido).
 - [ ] **Cálculo de Volume:** Indicador mostrando o volume acumulado a cada tombamento da bandeja.
 - [ ] **Estabilidade:** A interface consegue rodar a demonstração funcional de ponta a ponta sem quebrar.
