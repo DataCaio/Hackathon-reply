@@ -9,9 +9,15 @@ dependencies = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+addopts = "-ra"
 
 [project.scripts]
 hackathon-reply = "hackathon_reply:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

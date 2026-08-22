@@ -1,0 +1,1 @@
+{"event":"TRACK_UPDATE","schema_version":1,"timestamp_ms":1,"video_id":"video_03","resolution":"720p","track_id":"battery-0001","state":"TRACKING","bbox":null,"mask_confidence":null,"visibility":0.5,"length_mm":null,"width_mm":null,"geometry_uncertainty_mm":null,"volume_l":null,"volume_ci95_l":null,"volume_confidence":0.0,"counted":false}

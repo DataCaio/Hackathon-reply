@@ -1,8 +1,9 @@
-"""Deterministic detection-cache replay for the User Story 2 acceptance path."""
+"""Deterministic replay utilities for the Story 2 and Story 3 acceptance paths."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterable
 
 from hackathon_reply.contracts import ReplayFrame, TrackState, VolumeEstimate
@@ -15,6 +16,10 @@ from hackathon_reply.events import (
     track_update_event,
 )
 from hackathon_reply.vision.tracker import IoUTracker
+
+from hackathon_reply.contracts.diagnostics import normalize_summary
+from hackathon_reply.contracts.events import EventValidationError, iter_validated_jsonl
+from hackathon_reply.contracts.serialization import canonical_json, load_summary
 
 
 @dataclass(frozen=True)
@@ -104,3 +109,129 @@ class ReplayRunner:
                 continue
             if not estimate.is_valid:
                 raise ValueError("invalid volume estimate cannot enter replay")
+
+
+class ReplayError(ValueError):
+    """A Story 3 event replay input or summary violates its contract."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "replay_error",
+        line_number: int | None = None,
+        event_type: str | None = None,
+        track_id: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.line_number = line_number
+        self.event_type = event_type
+        self.track_id = track_id
+
+
+@dataclass(frozen=True)
+class CanonicalReplayResult:
+    """Semantic result for a validated Story 3 canonical JSONL stream."""
+
+    event_count: int
+    event_types: frozenset[str]
+    track_ids: frozenset[str]
+    counted_track_ids: frozenset[str]
+    events: tuple[dict[str, Any], ...]
+    semantic_summary: dict[str, Any]
+
+
+def _replay_error(exc: Exception) -> ReplayError:
+    if isinstance(exc, EventValidationError):
+        return ReplayError(
+            str(exc),
+            code=exc.code,
+            line_number=exc.line_number,
+            event_type=exc.event_type,
+            track_id=exc.track_id,
+        )
+    return ReplayError(str(exc))
+
+
+def replay_events(
+    events_path: str | Path,
+    summary_path: str | Path,
+) -> CanonicalReplayResult:
+    """Replay and validate a Story 3 canonical event stream."""
+
+    try:
+        summary = load_summary(summary_path)
+    except Exception as exc:  # normalize all boundary errors to ReplayError
+        raise _replay_error(exc) from exc
+
+    event_count = 0
+    event_types: set[str] = set()
+    track_ids: set[str] = set()
+    counted_track_ids: set[str] = set()
+    events: list[dict[str, Any]] = []
+    try:
+        with Path(events_path).open("r", encoding="utf-8") as handle:
+            for event in iter_validated_jsonl(handle):
+                event_count += 1
+                event_types.add(event["event"])
+                track_ids.add(event["track_id"])
+                if event["event"] == "BATTERY_COUNTED":
+                    counted_track_ids.add(event["track_id"])
+                events.append(event)
+    except (OSError, EventValidationError) as exc:
+        raise _replay_error(exc) from exc
+
+    summary_ids = set(summary["counted_track_ids"])
+    if summary_ids != counted_track_ids:
+        raise ReplayError(
+            "summary counted_track_ids do not match replayed count identities",
+            code="summary_count_mismatch",
+        )
+    if summary["lot_count"] != len(counted_track_ids):
+        raise ReplayError("summary lot_count does not match replayed counts", code="summary_count_mismatch")
+    if summary["unique_tracks"] != len(track_ids):
+        raise ReplayError("summary unique_tracks does not match replayed identities", code="summary_track_mismatch")
+
+    return CanonicalReplayResult(
+        event_count=event_count,
+        event_types=frozenset(event_types),
+        track_ids=frozenset(track_ids),
+        counted_track_ids=frozenset(counted_track_ids),
+        events=tuple(events),
+        semantic_summary=normalize_summary(summary),
+    )
+
+
+def replay_to_files(
+    events_path: str | Path,
+    summary_path: str | Path,
+    output_path: str | Path,
+    result_path: str | Path,
+) -> CanonicalReplayResult:
+    """Replay a Story 3 stream to canonical JSONL and normalized result JSON."""
+
+    result = replay_events(events_path, summary_path)
+    output = Path(output_path)
+    result_file = Path(result_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    result_file.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        for event in result.events:
+            handle.write(canonical_json(event))
+            handle.write("\n")
+    payload = {
+        "event_count": result.event_count,
+        "event_types": sorted(result.event_types),
+        "track_ids": sorted(result.track_ids),
+        "counted_track_ids": sorted(result.counted_track_ids),
+        "summary": result.semantic_summary,
+    }
+    result_file.write_text(canonical_json(payload) + "\n", encoding="utf-8")
+    return result
+
+
+def semantic_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    """Normalize a Story 3 summary for deterministic equality checks."""
+
+    return normalize_summary(summary)

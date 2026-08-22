@@ -8,11 +8,33 @@ data/*
 *.zip
 
 *.pem
+
+# Python tooling and generated runtime output
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+*.log
+.env*
+runs/
+outputs/
+cache/
+
+# Private model/runtime artifacts (published fixtures remain visible)
+weights/
+models/*.pt
+models/*.onnx
+*.pt
+*.onnx
+*.engine
+generated/
 
 # Graphify
 graphify-out/*
 !graphify-out/GRAPH_REPORT.md
 !graphify-out/graph.html
-

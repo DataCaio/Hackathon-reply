@@ -1,0 +1,24 @@
+{
+  "summary_schema_version": 1,
+  "video_id": "video_03",
+  "resolution": "720p",
+  "frames_processed": 21,
+  "lot_count": 1,
+  "lot_volume_l": 7.94,
+  "unique_tracks": 1,
+  "counted_track_ids": ["battery-0001"],
+  "processing_fps": 30.0,
+  "health_status": "HEALTHY",
+  "run_status": "COMPLETE",
+  "warnings": [
+    {
+      "code": "SIMULATED_PLC_DISPLAY",
+      "message": "PLC-oriented display is simulated; Model Core does not control hardware.",
+      "frame_id": null,
+      "recoverable": true
+    }
+  ],
+  "errors": [],
+  "replayable": true,
+  "replay_evidence_refs": ["events/video_03_720p.jsonl"]
+}

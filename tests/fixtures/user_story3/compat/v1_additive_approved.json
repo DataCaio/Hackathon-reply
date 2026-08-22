@@ -1,0 +1,11 @@
+{
+  "compatibility_schema_version": 1,
+  "change_type": "additive",
+  "base_event_schema_version": 1,
+  "proposed_event_schema_version": 1,
+  "new_keys": ["consumer_note"],
+  "approval_status": "approved",
+  "delivery": "future_contract_update",
+  "preserved_existing_keys": true,
+  "mvp_rule": "The current v1 validator still rejects undeclared event keys until the fixed set is updated with consumer tests."
+}
