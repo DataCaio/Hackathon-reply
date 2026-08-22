@@ -1,0 +1,10 @@
+{
+  "compatibility_schema_version": 1,
+  "change_type": "breaking",
+  "base_event_schema_version": 1,
+  "proposed_event_schema_version": 2,
+  "approval_status": "requires_consumer_decision",
+  "delivery": "version_bump_required",
+  "preserved_existing_keys": false,
+  "reason": "A renamed or removed fixed key cannot be delivered as schema_version 1."
+}

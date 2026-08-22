@@ -1,0 +1,19 @@
+{
+  "summary_schema_version": 1,
+  "video_id": "video_03",
+  "resolution": "720p",
+  "frames_processed": 10,
+  "lot_count": 0,
+  "lot_volume_l": null,
+  "unique_tracks": 1,
+  "counted_track_ids": [],
+  "processing_fps": null,
+  "health_status": "DEGRADED",
+  "run_status": "COMPLETE",
+  "warnings": [],
+  "errors": [
+    {"code":"STREAM_INTERRUPTED","message":"Input ended before declared frames completed.","frame_id":1,"recoverable":false}
+  ],
+  "replayable": true,
+  "replay_evidence_refs": []
+}

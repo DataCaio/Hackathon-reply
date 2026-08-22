@@ -1,0 +1,1 @@
+{"event":"BATTERY_COUNTED","schema_version":1,"timestamp_ms":1,"video_id":"video_03","resolution":"720p","track_id":"battery-0001","state":"COUNTED","volume_l":7.94,"volume_ci95_l":[7.4,8.2],"volume_confidence":0.86,"lot_count":2,"lot_volume_l":7.94}

@@ -8,6 +8,16 @@
 
 **Input**: User description: "Read `PLANO_BACKEND_3_AGENTES.md` and align the Backend/Model Core plan to the project constitution."
 
+## Clarifications
+
+### Session 2026-08-22
+
+- Q: Should every event carry an explicit schema version from the first release, or should versioning be introduced only when the contract changes? → A: Include `schema_version: 1` on every event from the initial release; increment it for breaking changes.
+- Q: Should the canonical handoff and replay fixture use one structured event per line in JSONL, or should another transport be normative? → A: Canonical JSONL with one event per line; APIs or streams may wrap the same events.
+- Q: Should health, warnings, and processing errors travel as separate structured records, or only in the run summary alongside the battery events? → A: Keep the three battery event types and put health, warnings, and errors in a versioned run-summary/diagnostics record.
+- Q: How frequently should active tracks emit `TRACK_UPDATE` records in the canonical JSONL? → A: Emit one update per processed frame for every active track; include state changes in that stream.
+- Q: Should each event type require a fixed set of keys even when a field is unavailable, using `null`, or may fields be omitted when not applicable? → A: Fixed keys per event type; unavailable applicable values are `null`; no undeclared fields in the MVP.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Produce a Trustworthy Lot Result (Priority: P1)
@@ -50,14 +60,16 @@ As an interface integration team member, I want a stable, versioned event bounda
 
 **Why this priority**: A frozen and independently consumable boundary allows parallel delivery and prevents model or tracker choices from leaking into downstream products.
 
-**Independent Test**: Consume a fixture of at least 20 events using only the published event contract. Verify event names, required fields, state values, null semantics, numeric validity, ordering, and exactly-once counted identities.
+**Independent Test**: Consume the canonical JSONL fixture of at least 20 events using only the published event contract. Verify fixed keys per event type, event names, required fields, state values, null semantics, numeric validity, ordering, and exactly-once counted identities.
 
 **Acceptance Scenarios**:
 
-1. **Given** a track with incomplete physical evidence, **When** a track update is emitted, **Then** unavailable physical fields are null rather than zero and confidence truthfully reflects the available evidence.
+1. **Given** a track with incomplete physical evidence, **When** a track update is emitted, **Then** every declared key for that event type is present, unavailable physical fields are null rather than zero, no undeclared field is added, and confidence truthfully reflects the available evidence.
 2. **Given** a temporary occlusion, **When** the visible state changes, **Then** downstream consumers receive the permitted state and occlusion information through the structured event boundary.
 3. **Given** an additive contract version change approved with the consumer, **When** the new events are delivered, **Then** existing fields retain their names and meanings and compatibility tests demonstrate the decision.
 4. **Given** events displayed by a PLC-oriented consumer, **When** the demo is presented, **Then** the display is explicitly identified as simulated and the Model Core never claims or decides real PLC state.
+5. **Given** a processing warning or error, **When** the consumer reads the run result, **Then** the versioned run-summary/diagnostics record exposes the condition separately from the three battery event types and identifies whether the output is replayable.
+6. **Given** an active track spans multiple processed frames, **When** the consumer replays the canonical JSONL, **Then** it receives one `TRACK_UPDATE` for that track on each processed frame and sees state changes in sequence.
 
 ---
 
@@ -139,22 +151,22 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - **FR-024**: Volume MUST be derived from catalog dimensions and candidate probabilities, never from a direct opaque volume prediction.
 - **FR-025**: Every available volume result MUST include a confidence value from 0 to 1 and a valid uncertainty interval; when no usable physical observation exists, physical values MUST be unavailable and volume confidence MUST be 0.
 - **FR-026**: The external contract MUST support `TRACK_UPDATE`, `TRACK_OCCLUDED`, and `BATTERY_COUNTED` events without allowing the Model Core to emit or decide `PLC_STATE`.
-- **FR-027**: A `TRACK_UPDATE` MUST identify the recording, resolution, timestamp, track, state, original-frame box, visibility, available measurement and volume evidence, uncertainty, confidence, and whether the track has been counted.
+- **FR-027**: A `TRACK_UPDATE` MUST be emitted once per processed frame for every active track (any track not in `LOST`) and MUST identify the recording, resolution, timestamp, track, state, original-frame box, visibility, available measurement and volume evidence, uncertainty, confidence, and whether the track has been counted.
 - **FR-028**: A `TRACK_OCCLUDED` event MUST identify the track, predicted position when available, last trustworthy volume when available, and its confidence.
 - **FR-029**: A `BATTERY_COUNTED` event MUST identify the track, frozen positive volume, uncertainty interval, current lot count, and current lot volume.
-- **FR-030**: Unavailable physical fields in track updates MUST be null rather than zero; all emitted numbers MUST be valid finite numeric values.
-- **FR-031**: Event records MUST contain one structured event each, preserve agreed field names and meanings, and introduce version information only through an additive compatibility decision confirmed with the consumer and covered by contract tests.
-- **FR-032**: External state changes MUST be replayable, and critical paths MUST expose errors, warnings, health status, confidence, uncertainty, and the evidence needed to explain a result.
+- **FR-030**: Each event type MUST use a fixed set of declared keys; every declared key MUST be present, unavailable applicable values MUST be null rather than zero, undeclared fields MUST NOT be added in the MVP, and all emitted numbers MUST be valid finite numeric values.
+- **FR-031**: Event records MUST contain one structured event each, MUST be serialized as one event per line in the canonical JSONL handoff, and MUST carry `schema_version: 1` from the initial release; APIs or streams MAY wrap the same events without changing their meaning, agreed field names and meanings MUST be preserved, additive changes MUST be approved with the consumer and covered by contract tests, and breaking changes MUST increment the schema version.
+- **FR-032**: External battery state changes MUST be replayable, and critical paths MUST expose errors, warnings, health status, confidence, uncertainty, and the evidence needed to explain a result through a versioned run-summary/diagnostics record beside the canonical JSONL; diagnostics MUST NOT be encoded as battery events.
 - **FR-033**: The same downstream tracking, measurement, counting, and event behavior MUST be usable with live detections or a cached deterministic replay source.
 - **FR-034**: Replay MUST operate without loading a trained detector or requiring specialized acceleration and MUST produce the same summary on repeated runs over the same inputs and configuration.
 - **FR-035**: Processing MUST fail before or at the first invalid input when configuration is missing, a video and declared resolution disagree, timestamps regress, events cannot be represented, volumes are invalid, or a track would be counted twice.
-- **FR-036**: Every run MUST summarize the recording and resolution, frames processed, lot count, lot volume, unique tracks, counted track identities, and observed processing rate.
+- **FR-036**: Every run MUST produce a versioned run-summary/diagnostics record containing the recording and resolution, frames processed, lot count, lot volume, unique tracks, counted track identities, observed processing rate, health status, warnings, errors, and replay-evidence references.
 - **FR-037**: Paired-resolution comparison MUST report count gap and relative volume gap for the same physical video under the same canonical camera and gate configuration.
 - **FR-038**: Relative volume error, duplicate rate, count error, resolution volume gap, and uncertainty calibration MUST be evaluated whenever the traceable golden set supports them; unsupported metrics MUST be marked `not_available`.
 - **FR-039**: The golden set MUST trace manual count, relevant frame intervals, 10–20 operational tracks, marked occlusions, and catalog or volume truth only where independently verifiable.
 - **FR-040**: Paired 720p and 1080p recordings of one physical video MUST remain in the same data partition, and consecutive frames from a physical video MUST NOT cross training, validation, or test boundaries.
 - **FR-041**: Videos 01–03 MUST form the training partition, video 04 the validation partition, and video 05 the test partition for this feature.
-- **FR-042**: The downstream handoff MUST include the three event examples, a fixture of at least 20 events, state definitions, null semantics, original-frame coordinate semantics, expected update cadence, exactly-once count semantics, and replay instructions.
+- **FR-042**: The downstream handoff MUST include the three event examples, each carrying `schema_version: 1`, the fixed key set for each event type, a canonical JSONL fixture of at least 20 events, a versioned run-summary/diagnostics example, state definitions, null semantics, original-frame coordinate semantics, the cadence of one `TRACK_UPDATE` per processed frame for each active track, exactly-once count semantics, the compatibility policy, and replay instructions.
 - **FR-043**: Downstream consumers MUST be able to process the handoff without importing or depending on internal vision, geometry, catalog, or tracker state.
 - **FR-044**: Configuration thresholds and operational choices MUST be explicit, reviewable, and free of hidden global state or unexplained magic values.
 - **FR-045**: The final release evidence MUST identify the integrated revision, contributing work, active detector mode, artifact checksums, data partitions, configuration, exact demo procedure, known limitations, and freeze time without storing private videos, raw frames, credentials, or large runtime caches in version control.
@@ -204,11 +216,11 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - **SC-002**: In every validated run, 100% of counted operational identifiers appear in exactly one counted event, the lot count equals the number of those unique identifiers, and lot volume equals the sum of their frozen volumes within the published tolerance.
 - **SC-003**: The deterministic acceptance fixture yields exactly one count for the battery that crosses, zero counts for the battery that does not cross, preserves one identity across the defined occlusion and reacquisition, rejects the short false positive, and produces an identical summary across two consecutive replays.
 - **SC-004**: 100% of reported volume results are finite and positive and include confidence in the range 0–1 plus an ordered uncertainty interval; 100% of unsupported physical results are null and cannot trigger a counted-volume event.
-- **SC-005**: 100% of delivered event records pass the published contract checks, use monotonic timestamps, contain no non-finite numbers, obey null semantics, and contain no empty track identity.
+- **SC-005**: 100% of delivered event records pass the published fixed-key contract checks, carry the declared schema version, use monotonic timestamps, contain no non-finite numbers, obey null semantics, contain no undeclared fields, and contain no empty track identity.
 - **SC-006**: A 1080p/720p pair produces both count gap and relative volume gap; all evidence-dependent metrics are either computed from traceable truth or explicitly marked unavailable in 100% of cases.
 - **SC-007**: An audit sample of 10–20 tracks is traceable to video, frame range, operational identity, occlusion evidence, count decision, and available catalog evidence, with no invented label.
 - **SC-008**: At least 10 real observations and all calibrated synthetic cases are reviewable for physical dimension evidence; truncated or invalid cases are visibly rejected or assigned lower quality.
-- **SC-009**: The interface team can consume a fixture of at least 20 events and replay a real event stream using only the external contract, with zero dependencies on internal model or tracker objects.
+- **SC-009**: The interface team can consume the canonical JSONL fixture of at least 20 events and the versioned run-summary/diagnostics record, then replay a real event stream with one `TRACK_UPDATE` per processed frame for each active track using only the external contract, with zero dependencies on internal model or tracker objects.
 - **SC-010**: A cached sequence of 300–900 frames can be replayed without specialized acceleration or a trained detector, and replay remains available as the demonstrated backup path after code freeze.
 - **SC-011**: In a technical rehearsal, an operator can start the selected run, validate its result, and start the backup replay in under 10 minutes using the documented procedures and without changing source code.
 - **SC-012**: 100% of demo-facing outputs that refer to PLC behavior identify it as simulated, and 100% of runs without trusted physical calibration visibly state that absolute volume is unvalidated.
