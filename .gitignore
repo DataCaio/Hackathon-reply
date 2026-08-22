@@ -1,4 +1,6 @@
 .agents/
 .codex/
 .gemini/
-.specify/
+.specify/*
+
+!.specify/memory/constitution.md
