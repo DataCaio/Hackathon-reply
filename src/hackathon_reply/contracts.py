@@ -123,6 +123,94 @@ class VolumeEstimate:
 
 
 @dataclass(frozen=True)
+class FrameMeasurement:
+    track_id: str
+    frame_id: int
+    length_mm: float | None
+    width_mm: float | None
+    geometry_uncertainty_mm: float | None
+    quality: float
+    pixel_length_px: float | None = None
+    pixel_width_px: float | None = None
+    calibration_validated: bool = True
+    boundary_truncated: bool = False
+    warning: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.track_id.startswith("battery-"):
+            raise ValueError("measurement track_id must be an operational ID")
+        if self.frame_id < 0:
+            raise ValueError("measurement frame_id must be non-negative")
+        if not 0 <= self.quality <= 1 or not isfinite(self.quality):
+            raise ValueError("measurement quality must be within 0..1")
+        if (self.length_mm is None) != (self.width_mm is None):
+            raise ValueError("length_mm and width_mm must be available together")
+        if self.length_mm is not None:
+            _require_finite(self.length_mm, "length_mm")
+            _require_finite(self.width_mm or 0.0, "width_mm")
+            if self.length_mm <= 0 or (self.width_mm or 0.0) <= 0:
+                raise ValueError("physical dimensions must be positive")
+        if self.geometry_uncertainty_mm is not None:
+            _require_finite(self.geometry_uncertainty_mm, "geometry_uncertainty_mm")
+            if self.geometry_uncertainty_mm < 0:
+                raise ValueError("geometry_uncertainty_mm must be non-negative")
+        for value, name in (
+            (self.pixel_length_px, "pixel_length_px"),
+            (self.pixel_width_px, "pixel_width_px"),
+        ):
+            if value is not None:
+                _require_finite(value, name)
+                if value <= 0:
+                    raise ValueError(f"{name} must be positive")
+
+    @property
+    def usable(self) -> bool:
+        return self.length_mm is not None and self.width_mm is not None and self.quality > 0
+
+
+@dataclass(frozen=True)
+class CatalogCandidate:
+    catalog_id: str
+    length_mm: float
+    width_mm: float
+    height_mm: float
+    categories: tuple[str, ...]
+    probability: float
+    volume_l: float
+
+
+@dataclass(frozen=True)
+class TrackEstimate:
+    track_id: str
+    catalog_candidates: tuple[CatalogCandidate, ...]
+    catalog_id: str | None
+    ambiguous: bool
+    length_mm: float | None
+    width_mm: float | None
+    volume_l: float | None
+    volume_ci95_l: tuple[float, float] | None
+    volume_confidence: float
+    physical_validated: bool = True
+    warning: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.track_id.startswith("battery-"):
+            raise ValueError("estimate track_id must be an operational ID")
+        if not 0 <= self.volume_confidence <= 1 or not isfinite(self.volume_confidence):
+            raise ValueError("volume_confidence must be within 0..1")
+        if self.volume_l is None:
+            if self.volume_ci95_l is not None or self.volume_confidence != 0:
+                raise ValueError("unavailable estimates require null interval and zero confidence")
+        else:
+            _require_finite(self.volume_l, "volume_l")
+            if self.volume_l <= 0 or self.volume_ci95_l is None:
+                raise ValueError("available estimates require a positive volume and interval")
+            low, high = self.volume_ci95_l
+            if low < 0 or high < low or not isfinite(low) or not isfinite(high):
+                raise ValueError("volume_ci95_l must be ordered and finite")
+
+
+@dataclass(frozen=True)
 class TrackObservation:
     track_id: str
     state: TrackState
