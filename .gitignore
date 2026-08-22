@@ -2,5 +2,7 @@
 .codex/
 .gemini/
 .specify/*
-
 !.specify/memory/constitution.md
+
+data/*
+*.zip
