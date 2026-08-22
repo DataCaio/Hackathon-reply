@@ -8,7 +8,6 @@ from typing import Any
 
 import pytest
 
-
 FEATURE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURE_ROOT = FEATURE_ROOT / "tests" / "fixtures" / "user_story3"
 

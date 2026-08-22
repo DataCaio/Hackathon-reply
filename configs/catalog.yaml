@@ -1,0 +1,5 @@
+catalog_path: data/datal.csv
+length_column: L
+width_column: W
+height_column: H
+decimal_locales: [pt-BR]

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from math import hypot
 
 from hackathon_reply.contracts import Detection, FrameMeta, Point, TrackObservation, TrackState
@@ -82,7 +82,6 @@ class IoUTracker:
         detections = tuple(detections)
         active_tracks = [track for track in self._tracks.values() if track.state != TrackState.LOST]
         matches = self._match(active_tracks, detections, meta.frame_id)
-        matched_track_ids = {match.track.track_id for match in matches}
         matched_detection_ids = {match.detection.detection_id for match in matches}
 
         observations: list[TrackObservation] = []

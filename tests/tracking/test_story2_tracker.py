@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from hackathon_reply.contracts import FrameMeta
 from hackathon_reply.vision.tracker import IoUTracker, TrackerConfig
 from tests.fixtures.story2 import detection, meta
 

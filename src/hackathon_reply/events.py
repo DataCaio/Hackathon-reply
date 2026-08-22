@@ -14,6 +14,7 @@ EVENT_NAMES = {"TRACK_UPDATE", "TRACK_OCCLUDED", "BATTERY_COUNTED"}
 
 def track_update_event(observation: TrackObservation, estimate: VolumeEstimate | None) -> dict[str, Any]:
     estimate = estimate if estimate is not None and estimate.is_valid else None
+    volume_interval = estimate.volume_ci95_l if estimate is not None else None
     return {
         "event": "TRACK_UPDATE",
         "timestamp_ms": observation.meta.timestamp_ms,
@@ -27,7 +28,7 @@ def track_update_event(observation: TrackObservation, estimate: VolumeEstimate |
         "length_mm": None,
         "width_mm": None,
         "volume_l": estimate.volume_l if estimate else None,
-        "volume_ci95_l": list(estimate.volume_ci95_l) if estimate else None,
+        "volume_ci95_l": list(volume_interval) if volume_interval is not None else None,
         "volume_confidence": estimate.volume_confidence if estimate else 0.0,
         "counted": observation.counted,
     }

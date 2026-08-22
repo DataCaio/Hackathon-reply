@@ -6,7 +6,6 @@
 
 data/*
 *.zip
-
 *.pem
 
 # Python tooling and generated runtime output
@@ -15,24 +14,32 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+.pytest-tmp/
 .mypy_cache/
 .ruff_cache/
 dist/
 *.egg-info/
 *.log
 .env*
+
+# Private model/runtime artifacts and generated outputs
 runs/
 outputs/
 cache/
-
-# Private model/runtime artifacts (published fixtures remain visible)
+artifacts/
+replay-cache/
+generated/
+generated-frames/
 weights/
 models/*.pt
 models/*.onnx
+models/weights/
 *.pt
 *.onnx
 *.engine
-generated/
+*.jsonl
+*.jsonl.complete
+!tests/fixtures/**/*.jsonl
 
 # Graphify
 graphify-out/*

@@ -34,7 +34,12 @@ class VideoPair:
             raise ValueError("durations and frame rates must be positive")
         if self.frame_count_1080 != self.frame_count_720:
             raise ValueError("paired videos must have equal frame counts")
-        if not isclose(self.duration_s_1080, self.duration_s_720, rel_tol=0.0, abs_tol=1 / min(self.fps_1080, self.fps_720)):
+        if not isclose(
+            self.duration_s_1080,
+            self.duration_s_720,
+            rel_tol=0.0,
+            abs_tol=1 / min(self.fps_1080, self.fps_720),
+        ):
             raise ValueError("paired videos must have aligned duration")
         if not isclose(self.fps_1080, self.fps_720, rel_tol=0.0, abs_tol=1e-6):
             raise ValueError("paired videos must have aligned frame rates")
@@ -63,7 +68,13 @@ class DatasetManifest:
                 filenames.add(filename)
                 casefolded_filenames.add(filename.casefold())
 
-        expected_partitions = {"video_01": "train", "video_02": "train", "video_03": "train", "video_04": "validation", "video_05": "test"}
+        expected_partitions = {
+            "video_01": "train",
+            "video_02": "train",
+            "video_03": "train",
+            "video_04": "validation",
+            "video_05": "test",
+        }
         missing = set(expected_partitions).difference(ids)
         if missing:
             raise ValueError(f"manifest is missing required explicit pairs: {sorted(missing)}")

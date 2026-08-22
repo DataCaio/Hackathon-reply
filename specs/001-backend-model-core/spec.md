@@ -17,6 +17,11 @@
 - Q: Should health, warnings, and processing errors travel as separate structured records, or only in the run summary alongside the battery events? → A: Keep the three battery event types and put health, warnings, and errors in a versioned run-summary/diagnostics record.
 - Q: How frequently should active tracks emit `TRACK_UPDATE` records in the canonical JSONL? → A: Emit one update per processed frame for every active track; include state changes in that stream.
 - Q: Should each event type require a fixed set of keys even when a field is unavailable, using `null`, or may fields be omitted when not applicable? → A: Fixed keys per event type; unavailable applicable values are `null`; no undeclared fields in the MVP.
+- Q: What should the MVP’s numeric uncertainty interval represent for each reported volume estimate? → A: Option A — deterministic, auditable bounds combining plausible catalog volumes with configured measurement-error bounds.
+- Q: When only a documented simplified calibration is available, may its absolute volume estimates be used in `BATTERY_COUNTED` events, or must counting wait for a trusted physical reference? → A: Option A — only trusted physical references enable counted absolute volumes; simplified or pixel-only results remain unvalidated and cannot trigger counted-volume events.
+- Q: What delivery guarantee should the structured event stream provide when records are retried or a run is replayed? → A: Option B — exactly-once delivery; an interruption fails the run and requires a clean restart.
+- Q: What fields should each external event use to prove its identity and order during exactly-once delivery and clean replay? → A: Option A — `run_id`, `event_id`, monotonic `sequence`, and `schema_version` in the contract.
+- Q: If a battery remains ambiguous between multiple valid catalog entries but has a finite expected volume and uncertainty interval, should it still count toward the lot? → A: Option A — count with expected volume and uncertainty while retaining the ambiguous candidate set.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -102,7 +107,7 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - A battery crosses the gate in reverse, stays beyond it for many frames, or reappears after counting: no duplicate contribution is made.
 - Occlusion exceeds the configured reacquisition window: the track becomes lost with explicit evidence; a later observation must not silently inherit identity without satisfying the documented reacquisition rule.
 - A volume is zero, negative, non-finite, or lacks a valid uncertainty representation: it cannot produce a counted-volume event.
-- Event delivery is interrupted or a record cannot be serialized: the failure is explicit and the partial evidence remains identifiable for replay.
+- Event delivery is interrupted or a record cannot be serialized: the run fails explicitly, partial evidence remains identifiable, and recovery requires a clean replay rather than resuming partial output.
 - No golden-set label exists for catalog identity or volume: the label is recorded as ambiguous or the metric as unavailable, never inferred from another resolution.
 
 ## Requirements *(mandatory)*
@@ -138,25 +143,25 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - **FR-011**: Track state MUST be one of `DETECTED`, `TRACKING`, `OCCLUDED`, `REACQUIRED`, `COUNTED`, or `LOST`, and every transition MUST have documented entry conditions.
 - **FR-012**: Temporary loss of detection MUST transition an eligible track to `OCCLUDED`; it MUST NOT create a new battery identity by itself.
 - **FR-013**: Reacquisition MUST require traceable motion and size evidence, retain the operational identifier, and preserve the last trustworthy volume posterior.
-- **FR-014**: A track MUST be counted only when it crosses the configured gate in the valid direction, has not already been counted, and has a finite positive volume estimate.
+- **FR-014**: A track MUST be counted only when it crosses the configured gate in the valid direction, has not already been counted, and has a finite positive expected volume estimate with a valid uncertainty interval. An ambiguous catalog identity does not by itself block counting; the counted event MUST retain the valid candidate set and MUST NOT invent a unique identity.
 - **FR-015**: A counted track MUST contribute to its lot exactly once even if it remains visible, becomes occluded, is reacquired, or reappears later in the same run.
 - **FR-016**: The volume and uncertainty committed at the count event MUST be frozen for the lot; later track updates MUST NOT retroactively change that contribution in the MVP.
 - **FR-017**: For every completed run, the lot count MUST equal the number of unique counted events and the lot volume MUST equal the sum of their frozen volumes within the published numeric tolerance.
-- **FR-018**: Physical length and width MUST be reported in millimeters and volume in liters only when a trusted physical reference or explicitly documented simplified calibration supports those units.
-- **FR-019**: When trusted physical calibration is unavailable, the system MUST expose the limitation, MUST NOT claim validated absolute volume, and MUST keep unsupported physical values unavailable rather than inventing scale.
+- **FR-018**: Physical length and width MUST be reported as validated millimeters and volume as validated liters only when a trusted physical reference supports those units.
+- **FR-019**: When trusted physical calibration is unavailable, the system MUST expose the limitation, MUST label any simplified-calibration or pixel-only estimate as unvalidated, MUST NOT claim validated absolute volume, and MUST NOT emit a counted-volume event from that fallback.
 - **FR-020**: Measurement quality MUST reflect mask confidence, visibility, contour validity, boundary truncation, and stability over time; a low-quality frame MUST contribute less evidence without erasing stronger prior observations.
 - **FR-021**: Length and width orientation MUST be treated as equivalent during catalog matching.
 - **FR-022**: Catalog ingestion MUST explicitly normalize valid locale-specific decimals, require positive dimensions, create stable catalog identities, report rejected rows, collapse exact dimension duplicates for probability purposes, and preserve all associated categories.
 - **FR-023**: Catalog inference MUST accumulate evidence by track, rank all plausible dimension candidates, and retain ambiguity when evidence does not justify a unique catalog identity.
 - **FR-024**: Volume MUST be derived from catalog dimensions and candidate probabilities, never from a direct opaque volume prediction.
-- **FR-025**: Every available volume result MUST include a confidence value from 0 to 1 and a valid uncertainty interval; when no usable physical observation exists, physical values MUST be unavailable and volume confidence MUST be 0.
+- **FR-025**: Every available volume result MUST include a confidence value from 0 to 1 and a deterministic, auditable uncertainty interval that combines plausible catalog volumes with configured measurement-error bounds; when no usable physical observation exists, physical values MUST be unavailable and volume confidence MUST be 0.
 - **FR-026**: The external contract MUST support `TRACK_UPDATE`, `TRACK_OCCLUDED`, and `BATTERY_COUNTED` events without allowing the Model Core to emit or decide `PLC_STATE`.
 - **FR-027**: A `TRACK_UPDATE` MUST be emitted once per processed frame for every active track (any track not in `LOST`) and MUST identify the recording, resolution, timestamp, track, state, original-frame box, visibility, available measurement and volume evidence, uncertainty, confidence, and whether the track has been counted.
 - **FR-028**: A `TRACK_OCCLUDED` event MUST identify the track, predicted position when available, last trustworthy volume when available, and its confidence.
-- **FR-029**: A `BATTERY_COUNTED` event MUST identify the track, frozen positive volume, uncertainty interval, current lot count, and current lot volume.
-- **FR-030**: Each event type MUST use a fixed set of declared keys; every declared key MUST be present, unavailable applicable values MUST be null rather than zero, undeclared fields MUST NOT be added in the MVP, and all emitted numbers MUST be valid finite numeric values.
-- **FR-031**: Event records MUST contain one structured event each, MUST be serialized as one event per line in the canonical JSONL handoff, and MUST carry `schema_version: 1` from the initial release; APIs or streams MAY wrap the same events without changing their meaning, agreed field names and meanings MUST be preserved, additive changes MUST be approved with the consumer and covered by contract tests, and breaking changes MUST increment the schema version.
-- **FR-032**: External battery state changes MUST be replayable, and critical paths MUST expose errors, warnings, health status, confidence, uncertainty, and the evidence needed to explain a result through a versioned run-summary/diagnostics record beside the canonical JSONL; diagnostics MUST NOT be encoded as battery events.
+- **FR-029**: A `BATTERY_COUNTED` event MUST identify the track, frozen positive volume, uncertainty interval, current lot count, current lot volume, and any retained ambiguous catalog candidate set.
+- **FR-030**: Each event type MUST use a fixed set of declared keys; every declared key MUST be present, unavailable applicable physical values MUST be null rather than zero, undeclared fields MUST NOT be added in the MVP, and all emitted numbers MUST be valid finite numeric values.
+- **FR-031**: Every event MUST contain a `run_id`, an `event_id` unique within that run, a monotonically increasing `sequence` within that run, and `schema_version: 1` from the initial release. Events MUST be serialized one per canonical JSONL line and delivered exactly once per run; APIs or streams MAY wrap them without changing their meaning, additive changes MUST be approved with the consumer, and breaking changes MUST increment the schema version.
+- **FR-032**: External state changes MUST be replayable through a clean new run; an interrupted run MUST fail explicitly and its partial output MUST NOT be treated as a completed stream. Critical paths MUST expose errors, warnings, health status, confidence, uncertainty, and evidence through a versioned run-summary/diagnostics record beside the canonical JSONL; diagnostics MUST NOT be encoded as battery events.
 - **FR-033**: The same downstream tracking, measurement, counting, and event behavior MUST be usable with live detections or a cached deterministic replay source.
 - **FR-034**: Replay MUST operate without loading a trained detector or requiring specialized acceleration and MUST produce the same summary on repeated runs over the same inputs and configuration.
 - **FR-035**: Processing MUST fail before or at the first invalid input when configuration is missing, a video and declared resolution disagree, timestamps regress, events cannot be represented, volumes are invalid, or a track would be counted twice.
@@ -166,7 +171,7 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - **FR-039**: The golden set MUST trace manual count, relevant frame intervals, 10–20 operational tracks, marked occlusions, and catalog or volume truth only where independently verifiable.
 - **FR-040**: Paired 720p and 1080p recordings of one physical video MUST remain in the same data partition, and consecutive frames from a physical video MUST NOT cross training, validation, or test boundaries.
 - **FR-041**: Videos 01–03 MUST form the training partition, video 04 the validation partition, and video 05 the test partition for this feature.
-- **FR-042**: The downstream handoff MUST include the three event examples, each carrying `schema_version: 1`, the fixed key set for each event type, a canonical JSONL fixture of at least 20 events, a versioned run-summary/diagnostics example, state definitions, null semantics, original-frame coordinate semantics, the cadence of one `TRACK_UPDATE` per processed frame for each active track, exactly-once count semantics, the compatibility policy, and replay instructions.
+- **FR-042**: The downstream handoff MUST include the three event examples, each carrying `schema_version: 1`, fixed key sets, a canonical fixture of at least 20 events, a versioned run-summary/diagnostics example, state definitions, null semantics, original-frame coordinate semantics, `run_id`, `event_id`, sequence definitions, one `TRACK_UPDATE` per processed frame for each active track, exactly-once delivery/count semantics, compatibility policy, and clean replay instructions.
 - **FR-043**: Downstream consumers MUST be able to process the handoff without importing or depending on internal vision, geometry, catalog, or tracker state.
 - **FR-044**: Configuration thresholds and operational choices MUST be explicit, reviewable, and free of hidden global state or unexplained magic values.
 - **FR-045**: The final release evidence MUST identify the integrated revision, contributing work, active detector mode, artifact checksums, data partitions, configuration, exact demo procedure, known limitations, and freeze time without storing private videos, raw frames, credentials, or large runtime caches in version control.
@@ -202,7 +207,7 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 - **Volume Estimate**: Expected liters, uncertainty interval, confidence, and supporting measurement quality for one track.
 - **Count Gate**: Resolution-independent line, valid flow direction, and crossing semantics that authorize a single lot contribution.
 - **Lot**: Unique counted track identities, frozen per-track volumes, current item count, and accumulated volume.
-- **Domain Event**: Version-compatible external record representing a track update, occlusion, or exactly-once count without exposing internal library objects.
+- **Domain Event**: Version-compatible external record with run and event identities, monotonic sequence, and schema version, representing a track update, occlusion, or exactly-once count without exposing internal library objects.
 - **Run Summary**: Processing outcome and health for one recording, including frames processed, unique tracks, counted tracks, lot totals, and observed rate.
 - **Resolution Comparison**: Paired 1080p/720p outcome containing count gap, relative volume gap, metric availability, and links to source summaries.
 - **Golden-Set Evidence**: Traceable manual crossing, frame interval, track, occlusion, and independently verified catalog or volume annotations.
@@ -230,7 +235,7 @@ As a technical evaluator, I want every volume and robustness claim to be traceab
 
 - The source inventory remains five aligned 1080p/720p pairs totaling 44,788 frames per resolution and approximately 24.9 minutes per resolution.
 - The raw catalog remains available with 95 rows, 67 unique dimension triples, 11 categories, and one known comma-decimal height that must be parsed explicitly.
-- A trusted conveyor or tray dimension and four physical reference points will be supplied within the initial calibration window. If they are not, the documented simplified-calibration or pixel-only fallback applies and absolute volume is not treated as validated.
+- A trusted conveyor or tray dimension and four physical reference points will be supplied within the initial calibration window. If they are not, the documented simplified-calibration or pixel-only fallback applies for non-validated inspection only and cannot authorize a counted-volume event.
 - The same physical camera viewpoint and conveyor geometry apply to each paired-resolution comparison.
 - The external consumer will approve any additive event version field before it is introduced; existing event names, fields, and meanings remain frozen until that compatibility decision.
 - API delivery, persistence, dashboard presentation, VLM explanations, and simulated PLC display are being delivered by separate features; this feature ends at validated structured events, summaries, evidence, and handoff.

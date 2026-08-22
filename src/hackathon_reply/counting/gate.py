@@ -1,65 +1,112 @@
-"""Resolution-independent count-gate geometry."""
+"""Resolution-independent directed gate crossing."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import hypot
 
-from hackathon_reply.contracts import Point
+from hackathon_reply.contracts.domain import CountGate as DomainCountGate
+from hackathon_reply.contracts.domain import FrameMeta
+
+
+class GateError(ValueError):
+    """Raised when a gate crossing input is malformed."""
 
 
 @dataclass(frozen=True)
 class CountGate:
-    start: Point
-    end: Point
-    flow_direction: int = 1
-    epsilon: float = 1e-9
+    """Gate contract supporting both explicit endpoints and legacy helpers."""
+
+    p1_norm: tuple[float, float]
+    p2_norm: tuple[float, float]
+    direction: str = "entry_to_exit"
+    epsilon: float = 1e-6
 
     def __post_init__(self) -> None:
-        if hypot(self.end[0] - self.start[0], self.end[1] - self.start[1]) == 0:
-            raise ValueError("count gate must have non-zero length")
-        if self.flow_direction not in {-1, 1}:
-            raise ValueError("flow_direction must be 1 or -1")
-        if self.epsilon <= 0:
-            raise ValueError("epsilon must be positive")
+        if self.p1_norm == self.p2_norm:
+            raise GateError("count gate endpoints must differ")
+        if self.direction not in {"entry_to_exit", "exit_to_entry"}:
+            raise GateError("count gate direction is invalid")
+        if self.epsilon < 0:
+            raise GateError("gate epsilon must be non-negative")
 
     @classmethod
-    def vertical(cls, normalized_x: float, flow_direction: str = "positive") -> "CountGate":
-        if not 0 <= normalized_x <= 1:
-            raise ValueError("normalized_x must be within 0..1")
-        return cls((normalized_x, 0.0), (normalized_x, 1.0), _direction(flow_direction))
+    def vertical(
+        cls,
+        *,
+        normalized_x: float,
+        flow_direction: str = "positive",
+        epsilon: float = 1e-6,
+    ) -> "CountGate":
+        if flow_direction not in {"positive", "negative"}:
+            raise GateError("flow_direction must be positive or negative")
+        direction = "entry_to_exit" if flow_direction == "positive" else "exit_to_entry"
+        return cls((normalized_x, 0.0), (normalized_x, 1.0), direction, epsilon)
 
-    @classmethod
-    def horizontal(cls, normalized_y: float, flow_direction: str = "positive") -> "CountGate":
-        if not 0 <= normalized_y <= 1:
-            raise ValueError("normalized_y must be within 0..1")
-        return cls((0.0, normalized_y), (1.0, normalized_y), _direction(flow_direction))
+    def normalized_point(
+        self,
+        point_px: tuple[float, float],
+        frame_width: int,
+        frame_height: int,
+    ) -> tuple[float, float]:
+        return (point_px[0] / frame_width, point_px[1] / frame_height)
 
-    def side(self, normalized_point: Point) -> float:
-        dx = self.end[0] - self.start[0]
-        dy = self.end[1] - self.start[1]
-        length = hypot(dx, dy)
-        # The right-hand normal makes positive flow increase x for a vertical gate.
-        normal = (dy / length, -dx / length)
-        return (
-            (normalized_point[0] - self.start[0]) * normal[0]
-            + (normalized_point[1] - self.start[1]) * normal[1]
-        )
+    def side(self, point_norm: tuple[float, float]) -> float:
+        return side_of_gate(point_norm, self)
 
     def crossed(self, previous_side: float, current_side: float) -> bool:
-        if self.flow_direction == 1:
-            return previous_side <= -self.epsilon and current_side >= self.epsilon
-        return previous_side >= self.epsilon and current_side <= -self.epsilon
-
-    def normalized_point(self, point: Point, width: int, height: int) -> Point:
-        if width <= 0 or height <= 0:
-            raise ValueError("frame dimensions must be positive")
-        return (point[0] / width, point[1] / height)
+        if self.direction == "entry_to_exit":
+            return previous_side > self.epsilon and current_side < -self.epsilon
+        return previous_side < -self.epsilon and current_side > self.epsilon
 
 
-def _direction(value: str) -> int:
-    if value == "positive":
-        return 1
-    if value == "negative":
-        return -1
-    raise ValueError("flow_direction must be positive or negative")
+def side_of_gate(point_norm: tuple[float, float], count_gate: DomainCountGate | CountGate) -> float:
+    """Return the signed side of the directed gate line."""
+
+    dx = count_gate.p2_norm[0] - count_gate.p1_norm[0]
+    dy = count_gate.p2_norm[1] - count_gate.p1_norm[1]
+    px = point_norm[0] - count_gate.p1_norm[0]
+    py = point_norm[1] - count_gate.p1_norm[1]
+    return dx * py - dy * px
+
+
+def crossed_gate(
+    previous_point_norm: tuple[float, float],
+    current_point_norm: tuple[float, float],
+    count_gate: DomainCountGate | CountGate,
+    *,
+    epsilon: float = 1e-9,
+) -> bool:
+    """Return true only for one directed transition across the gate line."""
+
+    if epsilon < 0:
+        raise GateError("epsilon must be non-negative")
+    previous_side = side_of_gate(previous_point_norm, count_gate)
+    current_side = side_of_gate(current_point_norm, count_gate)
+    if count_gate.direction == "entry_to_exit":
+        return previous_side > epsilon and current_side < -epsilon
+    return previous_side < -epsilon and current_side > epsilon
+
+
+def normalized_centroid(
+    centroid_px: tuple[float, float],
+    meta: FrameMeta,
+) -> tuple[float, float]:
+    """Convert an original-frame centroid to resolution-independent coordinates."""
+
+    return (centroid_px[0] / meta.width, centroid_px[1] / meta.height)
+
+
+def crossed_gate_pixels(
+    previous_centroid_px: tuple[float, float],
+    current_centroid_px: tuple[float, float],
+    meta: FrameMeta,
+    count_gate: CountGate,
+    *,
+    epsilon: float = 1e-9,
+) -> bool:
+    return crossed_gate(
+        normalized_centroid(previous_centroid_px, meta),
+        normalized_centroid(current_centroid_px, meta),
+        count_gate,
+        epsilon=epsilon,
+    )

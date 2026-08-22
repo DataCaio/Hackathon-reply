@@ -78,7 +78,12 @@ def compare_resolutions(left: RunOutcome, right: RunOutcome) -> ResolutionCompar
     denominator = (left.lot_volume_l + right.lot_volume_l) / 2
     gap = abs(left.lot_volume_l - right.lot_volume_l) / denominator if denominator > 0 else None
     metric = _metric(gap, "both lot volumes are positive" if gap is not None else "lot volume unavailable")
-    return ResolutionComparison(left.video_id, abs(left.lot_count - right.lot_count), gap, {"resolution_volume_gap": metric})
+    return ResolutionComparison(
+        left.video_id,
+        abs(left.lot_count - right.lot_count),
+        gap,
+        {"resolution_volume_gap": metric},
+    )
 
 
 def evaluate_paired_metrics(

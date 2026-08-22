@@ -7,7 +7,6 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-
 SUMMARY_SCHEMA_VERSION = 1
 SUMMARY_KEYS = frozenset(
     {

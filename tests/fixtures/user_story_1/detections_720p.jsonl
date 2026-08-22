@@ -1,0 +1,5 @@
+{"video_id":"video_01","resolution":"720p","frame_id":0,"timestamp_ms":0,"width":200,"height":100,"camera_id":"cctv_01","detections":[{"detection_id":1,"bbox_xyxy":[20,30,40,50],"mask_polygon":[[20,30],[40,30],[40,50]],"confidence":0.95}]}
+{"video_id":"video_01","resolution":"720p","frame_id":1,"timestamp_ms":40,"width":200,"height":100,"camera_id":"cctv_01","detections":[{"detection_id":1,"bbox_xyxy":[38,30,58,50],"mask_polygon":[[38,30],[58,30],[58,50]],"confidence":0.94}]}
+{"video_id":"video_01","resolution":"720p","frame_id":2,"timestamp_ms":80,"width":200,"height":100,"camera_id":"cctv_01","detections":[]}
+{"video_id":"video_01","resolution":"720p","frame_id":3,"timestamp_ms":120,"width":200,"height":100,"camera_id":"cctv_01","detections":[{"detection_id":1,"bbox_xyxy":[92,30,112,50],"mask_polygon":[[92,30],[112,30],[112,50]],"confidence":0.93}]}
+{"video_id":"video_01","resolution":"720p","frame_id":4,"timestamp_ms":160,"width":200,"height":100,"camera_id":"cctv_01","detections":[{"detection_id":1,"bbox_xyxy":[110,30,130,50],"mask_polygon":[[110,30],[130,30],[130,50]],"confidence":0.92}]}

@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from hackathon_reply.contracts import ReplayFrame, TrackState, VolumeEstimate
+from hackathon_reply.contracts.diagnostics import normalize_summary
+from hackathon_reply.contracts.events import EventValidationError, iter_validated_jsonl
+from hackathon_reply.contracts.serialization import canonical_json, load_summary
 from hackathon_reply.counting.counter import CounterConfig, ExactlyOnceCounter
 from hackathon_reply.counting.gate import CountGate
 from hackathon_reply.events import (
@@ -16,10 +19,6 @@ from hackathon_reply.events import (
     track_update_event,
 )
 from hackathon_reply.vision.tracker import IoUTracker
-
-from hackathon_reply.contracts.diagnostics import normalize_summary
-from hackathon_reply.contracts.events import EventValidationError, iter_validated_jsonl
-from hackathon_reply.contracts.serialization import canonical_json, load_summary
 
 
 @dataclass(frozen=True)
@@ -68,7 +67,11 @@ class ReplayRunner:
 
             observations = self.tracker.update(meta, frame.detections)
             for observation in observations:
-                estimate = frame.volume_estimates.get(observation.detection_id) if observation.detection_id is not None else None
+                estimate = (
+                    frame.volume_estimates.get(observation.detection_id)
+                    if observation.detection_id is not None
+                    else None
+                )
                 if estimate is not None and estimate.is_valid:
                     last_estimates[observation.track_id] = estimate
                 previous_estimate = last_estimates.get(observation.track_id)

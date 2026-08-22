@@ -1,0 +1,10 @@
+camera_id: cctv_01
+roi_polygon_norm: []
+count_gate:
+  p1_norm: [0.75, 0.10]
+  p2_norm: [0.75, 0.90]
+  direction: entry_to_exit
+calibration:
+  trusted: false
+  reference_points: []
+  destination_points_mm: []

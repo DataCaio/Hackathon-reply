@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import atan2, cos, hypot, pi, sin
+from math import atan2, cos, isfinite, sin
 
 from hackathon_reply.contracts import FrameMeasurement, Point, TrackObservation
-from hackathon_reply.geometry.calibration import PlanarCalibration
+from hackathon_reply.contracts.domain import FrameMeasurement as US1FrameMeasurement
+from hackathon_reply.geometry.calibration import PhysicalCalibration, PlanarCalibration
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,10 @@ class GeometryEstimator:
         contour_quality = min(1.0, pixel_area / (pixel_length * pixel_width))
         quality = max(0.0, min(1.0, (observation.mask_confidence or 0.0) * observation.visibility * contour_quality))
         boundary_truncated = any(
-            point[0] <= 0 or point[1] <= 0 or point[0] >= observation.meta.width - 1 or point[1] >= observation.meta.height - 1
+            point[0] <= 0
+            or point[1] <= 0
+            or point[0] >= observation.meta.width - 1
+            or point[1] >= observation.meta.height - 1
             for point in polygon
         )
         if boundary_truncated:
@@ -122,7 +126,11 @@ class GeometryEstimator:
 
 def _polygon_area(points: list[Point]) -> float:
     return 0.5 * abs(
-        sum(point[0] * points[(index + 1) % len(points)][1] - points[(index + 1) % len(points)][0] * point[1] for index, point in enumerate(points))
+        sum(
+            point[0] * points[(index + 1) % len(points)][1]
+            - points[(index + 1) % len(points)][0] * point[1]
+            for index, point in enumerate(points)
+        )
     )
 
 
@@ -143,3 +151,35 @@ def _minimum_area_dimensions(points: list[Point]) -> tuple[float, float, float]:
             best_area = area
             best_dimensions = (max(length, width), min(length, width))
     return best_dimensions[0], best_dimensions[1], best_area
+
+
+def measure_bbox(
+    *,
+    track_id: str,
+    frame_id: int,
+    bbox_xyxy: tuple[float, float, float, float],
+    mask_confidence: float | None,
+    visibility: float,
+    calibration: PhysicalCalibration,
+) -> US1FrameMeasurement:
+    """Measure a replay bounding box and preserve missing physical evidence."""
+
+    x_min, y_min, x_max, y_max = bbox_xyxy
+    width_px = float(x_max) - float(x_min)
+    height_px = float(y_max) - float(y_min)
+    if width_px <= 0 or height_px <= 0:
+        return US1FrameMeasurement(track_id, frame_id, None, None, None, 0.0)
+    confidence = 0.0 if mask_confidence is None else max(0.0, min(1.0, float(mask_confidence)))
+    quality = confidence * max(0.0, min(1.0, float(visibility)))
+    if not calibration.trusted:
+        return US1FrameMeasurement(track_id, frame_id, None, None, None, quality)
+    assert calibration.mm_per_pixel_x is not None
+    assert calibration.mm_per_pixel_y is not None
+    width_mm = width_px * calibration.mm_per_pixel_x
+    height_mm = height_px * calibration.mm_per_pixel_y
+    length_mm = max(width_mm, height_mm)
+    short_mm = min(width_mm, height_mm)
+    uncertainty = max(0.01, (1.0 - quality) * max(length_mm, short_mm) * 0.05)
+    if not all(isfinite(value) and value > 0 for value in (length_mm, short_mm, uncertainty)):
+        return US1FrameMeasurement(track_id, frame_id, None, None, None, 0.0)
+    return US1FrameMeasurement(track_id, frame_id, length_mm, short_mm, uncertainty, quality)

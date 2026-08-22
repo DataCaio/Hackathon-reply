@@ -12,8 +12,10 @@ from .diagnostics import normalize_summary, validate_summary
 from .events import (
     EventValidationError,
     iter_validated_jsonl,
-    load_event_stream as _load_event_stream,
     validate_event,
+)
+from .events import (
+    load_event_stream as _load_event_stream,
 )
 
 

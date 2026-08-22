@@ -1,0 +1,8 @@
+tracking:
+  max_occluded_frames: 3
+  reacquisition_max_distance_norm: 0.10
+  reacquisition_size_tolerance: 0.35
+measurement:
+  minimum_quality: 0.10
+counting:
+  gate_epsilon_norm: 0.000001

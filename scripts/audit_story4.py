@@ -77,7 +77,10 @@ def main() -> None:
     )
     report = {
         "golden_tracks": len(golden.tracks),
-        "partition_by_video": {f"video_{number:02d}": manifest.partition_of(f"video_{number:02d}") for number in range(1, 6)},
+        "partition_by_video": {
+            f"video_{number:02d}": manifest.partition_of(f"video_{number:02d}")
+            for number in range(1, 6)
+        },
         "comparison": {
             "video_id": comparison.video_id,
             "count_gap": comparison.count_gap,

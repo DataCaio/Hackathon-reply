@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import cast
 
 from hackathon_reply.contracts import FrameMeta, TrackObservation, TrackState, VolumeEstimate
 from hackathon_reply.counting.gate import CountGate
@@ -27,7 +28,7 @@ class CountDecision:
 
     @property
     def estimate(self) -> VolumeEstimate:
-        return self.record.estimate
+        return cast(VolumeEstimate, self.record.estimate)
 
 
 class ExactlyOnceCounter:

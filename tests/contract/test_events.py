@@ -11,9 +11,9 @@ from hackathon_reply.contracts.events import (
     COMMON_EVENT_KEYS,
     EVENT_KEYS,
     EVENT_TYPES,
-    EventValidationError,
     TRACK_OCCLUDED_KEYS,
     TRACK_UPDATE_KEYS,
+    EventValidationError,
     validate_event,
     validate_event_stream,
 )

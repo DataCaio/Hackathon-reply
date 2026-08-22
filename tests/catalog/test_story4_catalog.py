@@ -6,7 +6,6 @@ from hackathon_reply.catalog.catalog import CatalogLoader
 from hackathon_reply.catalog.matcher import CatalogMatcher, MatcherConfig
 from hackathon_reply.contracts import FrameMeasurement
 
-
 CSV = """length_mm;width_mm;height_mm;category
 197;130;225;starter
 197;130;225;deep-cycle

@@ -1,0 +1,8 @@
+{
+  "pair_id": "video_01",
+  "camera_id": "cctv_01",
+  "recordings": [
+    {"resolution": "1080p", "filename": "Video_01.mp4"},
+    {"resolution": "720p", "filename": "Video_01_720p.mp4"}
+  ]
+}

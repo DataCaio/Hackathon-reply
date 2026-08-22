@@ -14,7 +14,6 @@ from collections.abc import Iterable, Iterator, Mapping
 from pathlib import Path
 from typing import Any, TextIO
 
-
 SCHEMA_VERSION = 1
 EVENT_TYPES = frozenset({"TRACK_UPDATE", "TRACK_OCCLUDED", "BATTERY_COUNTED"})
 TRACK_STATES = frozenset(
@@ -288,7 +287,7 @@ def validate_event(
             event_type=event_type,
         )
 
-    video_id = _require_string(
+    _require_string(
         event["video_id"],
         "video_id",
         line_number=line_number,
@@ -645,3 +644,16 @@ def load_event_stream(path: str | Path) -> list[dict[str, Any]]:
 
     with Path(path).open("r", encoding="utf-8") as handle:
         return list(iter_validated_jsonl(handle))
+
+
+# US1 compatibility exports.  The canonical US3 names above intentionally
+# remain authoritative; these aliases add the older envelope/builders without
+# changing the strict stream validator's behavior.
+from .us1_events import (  # noqa: E402,F401
+    EventContractError,
+    EventEnvelope,
+    build_battery_counted,
+    build_track_occluded,
+    build_track_update,
+    validate_event_dict,
+)

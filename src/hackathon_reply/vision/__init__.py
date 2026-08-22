@@ -1,1 +1,1 @@
-"""Vision boundary adapters."""
+"""Detection and persistent tracking adapters."""

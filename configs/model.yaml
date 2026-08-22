@@ -1,0 +1,4 @@
+mode: replay
+detector: configured_adapter
+weights: null
+cached_detections: tests/fixtures/user_story_1/detections.jsonl

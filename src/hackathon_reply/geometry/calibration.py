@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import hypot, isfinite
+from typing import Sequence, cast
 
 from hackathon_reply.contracts import Point
+
+PlanarCoefficients = tuple[float, float, float, float, float, float, float, float]
 
 
 @dataclass(frozen=True)
@@ -54,7 +57,7 @@ class PlanarCalibration:
             values.append(X)
             rows.append([0.0, 0.0, 0.0, x, y, 1.0, -Y * x, -Y * y])
             values.append(Y)
-        coefficients = tuple(_solve_linear_system(rows, values))
+        coefficients = cast(PlanarCoefficients, tuple(_solve_linear_system(rows, values)))
         calibration = cls(coefficients, trusted, source, None)
         errors = []
         for pixel, physical in zip(pixel_points, physical_points):
@@ -102,3 +105,79 @@ def _solve_linear_system(matrix: list[list[float]], values: list[float]) -> list
                     for current, pivot_value in zip(augmented[row], augmented[column])
                 ]
     return [augmented[row][-1] for row in range(size)]
+
+
+class CalibrationError(ValueError):
+    """Raised when US1 calibration evidence is invalid."""
+
+
+@dataclass(frozen=True, slots=True)
+class PhysicalCalibration:
+    """Explicitly trusted pixel scales used by the US1 replay pipeline."""
+
+    trusted: bool
+    mm_per_pixel_x: float | None = None
+    mm_per_pixel_y: float | None = None
+    reference_points: tuple[tuple[float, float], ...] = ()
+    destination_points_mm: tuple[tuple[float, float], ...] = ()
+
+    def __post_init__(self) -> None:
+        for name, points in (
+            ("reference_points", self.reference_points),
+            ("destination_points_mm", self.destination_points_mm),
+        ):
+            for point in points:
+                if len(point) != 2 or not all(isfinite(float(value)) for value in point):
+                    raise CalibrationError(f"{name} must contain finite x/y points")
+        if self.reference_points and len(self.reference_points) != 4:
+            raise CalibrationError("four source reference points are required")
+        if self.destination_points_mm and len(self.destination_points_mm) != 4:
+            raise CalibrationError("four destination reference points are required")
+        if bool(self.reference_points) != bool(self.destination_points_mm):
+            raise CalibrationError("source and destination reference points must be supplied together")
+        if self.trusted:
+            if self.mm_per_pixel_x is None or self.mm_per_pixel_y is None:
+                raise CalibrationError("trusted calibration requires both pixel scales")
+            if not all(
+                isfinite(float(value)) and float(value) > 0
+                for value in (self.mm_per_pixel_x, self.mm_per_pixel_y)
+            ):
+                raise CalibrationError("trusted pixel scales must be positive and finite")
+        elif self.mm_per_pixel_x is not None or self.mm_per_pixel_y is not None:
+            raise CalibrationError("untrusted calibration cannot expose physical pixel scales")
+        elif self.reference_points or self.destination_points_mm:
+            raise CalibrationError("untrusted calibration cannot expose physical reference evidence")
+
+    @classmethod
+    def untrusted(cls) -> "PhysicalCalibration":
+        return cls(trusted=False)
+
+    @classmethod
+    def trusted_from_scale(cls, mm_per_pixel_x: float, mm_per_pixel_y: float) -> "PhysicalCalibration":
+        return cls(trusted=True, mm_per_pixel_x=mm_per_pixel_x, mm_per_pixel_y=mm_per_pixel_y)
+
+    @classmethod
+    def from_reference_points(
+        cls,
+        source_points: Sequence[tuple[float, float]],
+        destination_points_mm: Sequence[tuple[float, float]],
+        *,
+        mm_per_pixel_x: float,
+        mm_per_pixel_y: float,
+    ) -> "PhysicalCalibration":
+        source_values = tuple(source_points)
+        destination_values = tuple(destination_points_mm)
+        if len(source_values) != 4 or len(destination_values) != 4:
+            raise CalibrationError("four source and destination reference points are required")
+        try:
+            source_coordinates = tuple((float(point[0]), float(point[1])) for point in source_values)
+            destination_coordinates = tuple((float(point[0]), float(point[1])) for point in destination_values)
+        except (IndexError, TypeError, ValueError) as exc:
+            raise CalibrationError("reference points must contain x/y coordinates") from exc
+        return cls(
+            trusted=True,
+            mm_per_pixel_x=mm_per_pixel_x,
+            mm_per_pixel_y=mm_per_pixel_y,
+            reference_points=source_coordinates,
+            destination_points_mm=destination_coordinates,
+        )

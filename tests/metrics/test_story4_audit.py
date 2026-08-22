@@ -32,7 +32,9 @@ def pair(video_number: int, partition: str) -> VideoPair:
 
 
 def test_explicit_manifest_keeps_paired_resolutions_in_one_partition() -> None:
-    manifest = DatasetManifest((pair(1, "train"), pair(2, "train"), pair(3, "train"), pair(4, "validation"), pair(5, "test")))
+    manifest = DatasetManifest(
+        (pair(1, "train"), pair(2, "train"), pair(3, "train"), pair(4, "validation"), pair(5, "test"))
+    )
 
     manifest.validate()
     assert manifest.partition_of("video_01") == "train"

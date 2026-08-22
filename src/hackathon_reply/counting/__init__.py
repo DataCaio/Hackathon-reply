@@ -1,1 +1,1 @@
-"""Directed exactly-once counting boundaries."""
+"""Directed count-gate and lot aggregation rules."""
