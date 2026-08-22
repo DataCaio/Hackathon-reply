@@ -8,6 +8,8 @@ data/*
 *.zip
 
 *.pem
+__pycache__/
+*.py[cod]
 
 # Graphify
 graphify-out/*
