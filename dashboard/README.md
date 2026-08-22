@@ -1,16 +1,42 @@
-# React + Vite
+# Battery Vision HMI
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Industrial demo UI for the segmentation, tracking, volume, and simulated conveyor-safety workflow.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The UI expects rendered inference assets at `/final-product/`. During development, Vite proxies that path to the artifact server on port `8765`.
 
-## React Compiler
+```bash
+# Terminal 1: expose the AWS-rendered result (or serve a local result directory)
+ssh -i hackathon-training-1.pem -N \
+  -L 8765:127.0.0.1:8765 ubuntu@18.219.97.222
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# Terminal 2
+cd dashboard
+npm ci
+npm run dev
+```
 
-## Expanding the Oxlint configuration
+Open the Vite URL under `/dashboard/`. The HMI plays `final-product.mp4`, reads `summary.json`, and displays the live lot count, volume estimate, confirmed tracks, and mask confidence.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Simulated safety computer
+
+This is a software-only PLC simulation. The operator can inject a warning, stop the conveyor, continue it, or reset the lot. With auto-guard enabled, the demo transitions from `RUNNING` to `WARNING` and then `STOPPED`, pausing video playback and opening the simulated motor relay. It does not control real hardware.
+
+## Vision pipeline shown in the demo
+
+- YOLO26 instance segmentation fine-tuned on full-tray battery masks at 960 px.
+- Full visible tray ROI to reject detections on the surrounding machinery.
+- Two-stage high/low-confidence global association inspired by ByteTrack.
+- Constant-velocity Kalman prediction with IoU, scale, direction, and mask-appearance costs.
+- Confirmed-track hysteresis at the counting gate to reduce duplicate counts.
+- Approximate 5900 x 1500 mm tray homography and catalog-constrained volume estimates.
+
+The masks, physical calibration, and volume estimates are provisional demo outputs until human-reviewed annotations and camera calibration are complete.
+
+## Checks
+
+```bash
+npm run lint
+npm run build
+```
