@@ -1,0 +1,56 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "src_hackathon_reply_init_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "src/hackathon_reply/__init__.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_hackathon_reply_init",
+      "label": "__init__.py",
+      "_origin": "ast",
+      "community": 0,
+      "file_type": "code",
+      "norm_label": "__init__.py",
+      "source_file": "src/hackathon_reply/__init__.py",
+      "source_location": "L1"
+    },
+    {
+      "id": "pkg_hackathon_reply",
+      "label": "hackathon-reply",
+      "_origin": "ast",
+      "community": 1,
+      "ecosystem": "python",
+      "file_type": "code",
+      "norm_label": "hackathon-reply",
+      "source_file": "pyproject.toml",
+      "source_location": "L1",
+      "type": "package",
+      "version": "0.1.0"
+    }
+  ],
+  "links": [
+    {
+      "source": "src_hackathon_reply_init",
+      "target": "src_hackathon_reply_init_main",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/hackathon_reply/__init__.py",
+      "source_location": "L1",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [],
+  "built_at_commit": "b1538201b837b37bd9b5fade47cbf70be406f5dd"
+}
