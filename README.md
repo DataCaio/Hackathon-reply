@@ -311,9 +311,7 @@ A interface permite visualizar o vídeo processado junto aos principais indicado
 
 Também foi construída uma camada de **simulação de PLC/intertravamento**, utilizada apenas para demonstrar como a saída do sistema poderia participar de uma operação industrial.
 
-A integração com PLC, atuadores ou hardware real da planta estava explicitamente fora do escopo do desafio e foi feita apenas para fins de demonstração.
-
-<img width="1275" height="748" alt="image" src="https://github.com/user-attachments/assets/ac9858d0-d32b-4f4e-bbf9-57f4336b45b3" />  
+A integração com PLC, atuadores ou hardware real da planta estava explicitamente fora do escopo do desafio e foi feita apenas para fins de demonstração. 
 
 
 A interface foi um dos componentes utilizados na demonstração funcional apresentada durante o hackathon.
