@@ -4,6 +4,9 @@
 .specify/*
 !.specify/memory/constitution.md
 
+# Local planning artifacts; intentionally excluded from the repository.
+specs/
+
 data/*
 *.zip
 *.pem
